@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FloraWatch 🌸 - Monitor de Eventos de Floración Global</title>
+    
+    <!-- Estilos CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    
+    <!-- Leaflet para mapas -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'>🌸</svg>">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <h1><i class="fas fa-seedling"></i> FloraWatch</h1>
+                <p>Monitor de Eventos de Floración Global</p>
+            </div>
+            <nav class="nav">
+                <button class="nav-btn active" data-section="map">
+                    <i class="fas fa-globe"></i> Mapa Global
+                </button>
+                <button class="nav-btn" data-section="analytics">
+                    <i class="fas fa-chart-line"></i> Análisis
+                </button>
+                <button class="nav-btn" data-section="predictions">
+                    <i class="fas fa-crystal-ball"></i> Predicciones
+                </button>
+                <button class="nav-btn" data-section="alerts">
+                    <i class="fas fa-bell"></i> Alertas
+                </button>
+            </nav>
+            <div class="header-stats">
+                <div class="stat">
+                    <span class="stat-value" id="total-events">-</span>
+                    <span class="stat-label">Eventos Detectados</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="active-alerts">-</span>
+                    <span class="stat-label">Alertas Activas</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Sidebar de Controles -->
+        <aside class="sidebar">
+            <div class="controls-panel">
+                <h3><i class="fas fa-sliders-h"></i> Controles</h3>
+                
+                <!-- Selector de Ubicación -->
+                <div class="control-group">
+                    <label for="location-search">
+                        <i class="fas fa-map-marker-alt"></i> Ubicación
+                    </label>
+                    <div class="location-input">
+                        <input type="text" id="location-search" placeholder="Buscar ubicación...">
+                        <button id="current-location" title="Usar ubicación actual">
+                            <i class="fas fa-crosshairs"></i>
+                        </button>
+                    </div>
+                    <div class="coords-display">
+                        <input type="number" id="lat-input" placeholder="Latitud" step="0.0001">
+                        <input type="number" id="lon-input" placeholder="Longitud" step="0.0001">
+                    </div>
+                </div>
+
+                <!-- Selector de Fechas -->
+                <div class="control-group">
+                    <label><i class="fas fa-calendar"></i> Período de Análisis</label>
+                    <div class="date-inputs">
+                        <input type="date" id="start-date">
+                        <input type="date" id="end-date">
+                    </div>
+                    <div class="date-presets">
+                        <button class="preset-btn" data-days="30">30 días</button>
+                        <button class="preset-btn" data-days="90">90 días</button>
+                        <button class="preset-btn" data-days="365">1 año</button>
+                    </div>
+                </div>
+
+                <!-- Selector de Especies -->
+                <div class="control-group">
+                    <label for="species-select">
+                        <i class="fas fa-leaf"></i> Especie de Planta
+                    </label>
+                    <select id="species-select">
+                        <option value="general">General</option>
+                        <option value="cherry_blossom">Cerezo (Sakura)</option>
+                        <option value="almond">Almendro</option>
+                        <option value="apple">Manzano</option>
+                        <option value="lavender">Lavanda</option>
+                        <option value="sunflower">Girasol</option>
+                    </select>
+                </div>
+
+                <!-- Configuración de Análisis -->
+                <div class="control-group">
+                    <label><i class="fas fa-cog"></i> Configuración</label>
+                    <div class="config-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="show-confidence" checked>
+                            Mostrar nivel de confianza
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="show-predictions" checked>
+                            Incluir predicciones
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="auto-refresh">
+                            Actualización automática
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Botón de Análisis -->
+                <button id="analyze-btn" class="analyze-btn">
+                    <i class="fas fa-search"></i> Analizar Floración
+                </button>
+
+                <!-- Estado de Carga -->
+                <div id="loading-indicator" class="loading hidden">
+                    <div class="spinner"></div>
+                    <p>Analizando datos satelitales...</p>
+                </div>
+            </div>
+
+            <!-- Panel de Información -->
+            <div class="info-panel">
+                <h3><i class="fas fa-info-circle"></i> Información</h3>
+                <div id="location-info" class="info-content">
+                    <p>Selecciona una ubicación en el mapa o usa los controles para comenzar el análisis.</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Área Principal de Contenido -->
+        <div class="content-area">
+            <!-- Sección del Mapa -->
+            <section id="map-section" class="content-section active">
+                <div class="section-header">
+                    <h2><i class="fas fa-globe"></i> Mapa Global de Eventos de Floración</h2>
+                    <div class="map-controls">
+                        <div class="layer-selector">
+                            <label>Capa base:</label>
+                            <select id="base-layer">
+                                <option value="satellite">Satélite</option>
+                                <option value="terrain">Terreno</option>
+                                <option value="street">Calles</option>
+                            </select>
+                        </div>
+                        <div class="overlay-selector">
+                            <label>Superponer:</label>
+                            <select id="overlay-layer">
+                                <option value="none">Ninguno</option>
+                                <option value="ndvi">NDVI</option>
+                                <option value="evi">EVI</option>
+                                <option value="temperature">Temperatura</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="map" class="map-container"></div>
+                <div class="map-legend">
+                    <h4>Leyenda</h4>
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <span class="legend-color flowering-active"></span>
+                            <span>Floración Activa</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color flowering-predicted"></span>
+                            <span>Floración Predicha</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color flowering-past"></span>
+                            <span>Floración Pasada</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sección de Análisis -->
+            <section id="analytics-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-line"></i> Análisis Temporal</h2>
+                </div>
+                <div class="analytics-grid">
+                    <div class="chart-container">
+                        <h3>Serie Temporal NDVI</h3>
+                        <canvas id="ndvi-chart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Eventos Detectados</h3>
+                        <canvas id="events-chart"></canvas>
+                    </div>
+                    <div class="metrics-panel">
+                        <h3>Métricas Fenológicas</h3>
+                        <div class="metrics-grid">
+                            <div class="metric">
+                                <span class="metric-label">Inicio de Temporada</span>
+                                <span class="metric-value" id="season-start">-</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Pico de Temporada</span>
+                                <span class="metric-value" id="season-peak">-</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Duración Total</span>
+                                <span class="metric-value" id="season-length">-</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Intensidad Máxima</span>
+                                <span class="metric-value" id="max-intensity">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sección de Predicciones -->
+            <section id="predictions-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-crystal-ball"></i> Predicciones</h2>
+                </div>
+                <div class="predictions-content">
+                    <div class="prediction-controls">
+                        <div class="control-group">
+                            <label for="prediction-region">Región:</label>
+                            <select id="prediction-region">
+                                <option value="current">Ubicación Actual</option>
+                                <option value="global">Global</option>
+                                <option value="north_america">América del Norte</option>
+                                <option value="europe">Europa</option>
+                                <option value="asia">Asia</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="prediction-days">Días adelante:</label>
+                            <input type="range" id="prediction-days" min="7" max="90" value="30">
+                            <span id="prediction-days-value">30</span>
+                        </div>
+                        <button id="generate-predictions" class="analyze-btn">
+                            <i class="fas fa-magic"></i> Generar Predicciones
+                        </button>
+                    </div>
+                    <div id="predictions-results" class="predictions-results">
+                        <!-- Los resultados se cargarán aquí dinámicamente -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sección de Alertas -->
+            <section id="alerts-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-bell"></i> Alertas y Notificaciones</h2>
+                    <div class="alert-controls">
+                        <select id="alert-severity">
+                            <option value="all">Todas las alertas</option>
+                            <option value="high">Alta prioridad</option>
+                            <option value="medium">Media prioridad</option>
+                            <option value="low">Baja prioridad</option>
+                        </select>
+                        <button id="refresh-alerts">
+                            <i class="fas fa-sync"></i> Actualizar
+                        </button>
+                    </div>
+                </div>
+                <div id="alerts-container" class="alerts-container">
+                    <!-- Las alertas se cargarán aquí dinámicamente -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-info">
+                <p>&copy; 2024 FloraWatch - Powered by NASA Earth Observations</p>
+                <p>Datos proporcionados por MODIS, Landsat, VIIRS y otras misiones de NASA</p>
+            </div>
+            <div class="footer-links">
+                <a href="#about">Acerca de</a>
+                <a href="#api-docs">API</a>
+                <a href="#help">Ayuda</a>
+                <a href="#contact">Contacto</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+</body>
+</html>
