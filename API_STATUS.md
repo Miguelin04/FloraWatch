@@ -10,7 +10,7 @@
 
 #### 1. **OpenWeatherMap API** 🌤️
 - **Estado**: ✅ **CONFIGURADA Y FUNCIONANDO**
-- **API Key**: `774e34e3b37ec7f9d61e7df5dc31cf8c` ✅
+- **API Key**: `tu-clave-openweather` ✅
 - **Funcionalidades disponibles**:
   - ✅ Clima actual para cualquier ubicación
   - ✅ Pronóstico meteorológico 5 días
