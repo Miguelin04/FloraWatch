@@ -1,0 +1,38 @@
+# ============================================================================
+# FloraWatch - Development Requirements
+# Dependencias adicionales para desarrollo y testing
+# ============================================================================
+
+# Incluir dependencias de producción
+-r requirements-production.txt
+
+# Testing
+pytest==7.4.2
+pytest-cov==4.1.0
+pytest-flask==1.3.0
+pytest-mock==3.11.1
+
+# Calidad de Código
+black==23.9.1
+flake8==6.1.0
+isort==5.12.0
+mypy==1.6.1
+pre-commit==3.4.0
+
+# Debugging y Profiling
+ipdb==0.13.13
+memory-profiler==0.61.0
+line-profiler==4.1.1
+
+# Documentación
+Sphinx==7.2.6
+sphinx-rtd-theme==1.3.0
+
+# Análisis de Código
+bandit==1.7.5
+safety==2.3.5
+
+# Jupyter (para análisis experimental)
+jupyter==1.0.0
+ipykernel==6.25.2
+notebook==7.0.4
